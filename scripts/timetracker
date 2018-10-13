@@ -86,7 +86,6 @@ class App(Gtk.Application):
 
     def handle_new(self, action, user_data=None):
         self.create_new_task()
-        self.set_status_icon(running=False)
 
     def handle_start(self, action, user_data=None):
         self.start_clocking()
