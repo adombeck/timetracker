@@ -101,7 +101,6 @@ class App(Gtk.Application):
 
     def show_status_icon(self):
         logger.info("Showing status icon")
-        self.status_icon = Gtk.StatusIcon(visible=True)
         self.set_status_icon(running=False)
         self.hold()
 
@@ -158,6 +157,8 @@ class App(Gtk.Application):
             self.start_timing()
 
     def set_status_icon(self, running: bool):
+        if not self.status_icon:
+            self.status_icon = Gtk.StatusIcon(visible=True)
         if running:
             self.status_icon.set_from_icon_name("gtk-yes")
         else:
