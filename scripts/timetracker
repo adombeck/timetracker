@@ -4,6 +4,7 @@ import logging
 import sys
 import signal
 import subprocess
+import tempfile
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -33,6 +34,7 @@ class App(Gtk.Application):
         self.add_main_option("start", 0, 0, 0, "Start clocking")
         self.add_main_option("stop", 0, 0, 0, "Stop clocking")
         self.add_main_option("toggle", 0, 0, 0, "Toggle clocking")
+        self.add_main_option("print-timesheet", 0, 0, 0, "Print a timesheet listing the time spent in total on each task (in HH:MM format)")
         self.add_main_option("quit", 0, 0, 0, "Quit the application")
         self.connect("handle-local-options", self.do_handle_local_options)
 
@@ -64,15 +66,20 @@ class App(Gtk.Application):
         self.status_icon = Gtk.StatusIcon(visible=True)
         self.menu = Gtk.Menu()
 
-        open_tasks_item = Gtk.MenuItem()
-        open_tasks_item.set_label("Open tasks directory")
-        open_tasks_item.connect("activate", self.handle_open_tasks_directory)
-        self.menu.append(open_tasks_item)
+        item = Gtk.MenuItem()
+        item.set_label("Open tasks directory")
+        item.connect("activate", self.handle_open_tasks_directory)
+        self.menu.append(item)
 
-        quit_item = Gtk.MenuItem()
-        quit_item.set_label("Quit")
-        quit_item.connect("activate", self.handle_quit)
-        self.menu.append(quit_item)
+        item = Gtk.MenuItem()
+        item.set_label("Show timesheet")
+        item.connect("activate", self.handle_show_timesheet)
+        self.menu.append(item)
+
+        item = Gtk.MenuItem()
+        item.set_label("Quit")
+        item.connect("activate", self.handle_quit)
+        self.menu.append(item)
 
         self.menu.show_all()
         self.status_icon.connect("popup-menu", self.show_menu)
@@ -81,7 +88,7 @@ class App(Gtk.Application):
     def is_running(self) -> bool:
         return self.timer.thread and not self.timer.thread.halt.is_set()
 
-    def do_handle_local_options(self, app: Gio.Application, options: GLib.VariantDict, user_data=None):
+    def do_handle_local_options(self, app: Gio.Application, options: GLib.VariantDict):
         if options.contains("verbose"):
             logging.basicConfig(level=logging.DEBUG)
         else:
@@ -98,32 +105,42 @@ class App(Gtk.Application):
         elif options.contains("quit"):
             self.activate_action("quit")
             return 0
+        elif options.contains("print-timesheet"):
+            print(get_timesheet())
+            return 0
+        else:
+            self.set_status_icon(running=False)
 
         self.hold()
 
         return 0
 
-    def handle_new(self, action, user_data=None):
+    def handle_new(self, action):
         self.create_new_task()
 
-    def handle_start(self, action, user_data=None):
+    def handle_start(self, action):
         self.start_clocking()
         self.screenlock_monitor.start()
 
-    def handle_stop(self, action, user_data=None):
+    def handle_stop(self, action):
         self.stop_clocking()
         self.screenlock_monitor.stop()
 
-    def handle_toggle(self, action, user_data=None):
+    def handle_toggle(self, action):
         self.toggle_clocking()
 
-    def handle_quit(self, action, user_data=None):
+    def handle_quit(self, action):
         logger.info("Quitting")
         self.timer.stop()
         self.quit()
 
     def handle_open_tasks_directory(self, event):
         subprocess.Popen(["xdg-open", TASK_DIR])
+
+    def handle_show_timesheet(self, event):
+        f = tempfile.NamedTemporaryFile(mode="w+", prefix="timesheet-", suffix=".txt", delete=False)
+        f.write(get_timesheet())
+        subprocess.Popen(["gedit", "-", f.name])
 
     def show_menu(self, icon: Gtk.StatusIcon, button: int, time: int):
         self.menu.popup(parent_menu_shell=None,
@@ -204,6 +221,18 @@ class App(Gtk.Application):
             self.notification.close()
         self.notification = Notify.Notification.new("Stopped clocking task '%s'" % Task.get_last().name)
         self.notification.show()
+
+
+def get_timesheet() -> str:
+    lines = list()
+    for path in TASK_DIR.iterdir():
+        task = Task(path.name)
+        seconds = task.get_sum()
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        lines.append("%s: %i:%.2i" % (task.name, hours, minutes))
+    return "\n".join(sorted(lines))
+
 
 def main():
     # Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=622084
