@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 from typing import Union, TYPE_CHECKING
+import dateutil.parser
+
 
 if TYPE_CHECKING:
     from datetime import datetime, timedelta
@@ -58,3 +60,12 @@ class Task(object):
             raise ValueError("last entry of task '%s' does not have start time '%s", self.name, start_time_str)
         lines[-1] = "%s: %s\n" % (start_time_str, duration_str)
         self.path.write_text("\n".join(lines))
+
+    def get_sum(self) -> int:
+        total_seconds = 0
+        for line in self.path.read_text().strip().split("\n"):
+            duration_str = line.split(": ")[-1]
+            hours, minutes, seconds = (int(s) for s in duration_str.split(":"))
+            total_seconds += seconds + 60 * minutes + 3600 * hours
+
+        return total_seconds
