@@ -30,9 +30,9 @@ class App(Gtk.Application):
 
         self.add_main_option("verbose", 0, 0, 0, "Print debug messages")
         self.add_main_option("new", 0, 0, 0, "Create a new task")
-        self.add_main_option("start", 0, 0, 0, "Start timing")
-        self.add_main_option("stop", 0, 0, 0, "Stop timing")
-        self.add_main_option("toggle", 0, 0, 0, "Toggle timing")
+        self.add_main_option("start", 0, 0, 0, "Start clocking")
+        self.add_main_option("stop", 0, 0, 0, "Stop clocking")
+        self.add_main_option("toggle", 0, 0, 0, "Toggle clocking")
         self.add_main_option("quit", 0, 0, 0, "Quit the application")
         self.connect("handle-local-options", self.do_handle_local_options)
 
@@ -89,13 +89,13 @@ class App(Gtk.Application):
         self.set_status_icon(running=False)
 
     def handle_start(self, action, user_data=None):
-        self.start_timing()
+        self.start_clocking()
 
     def handle_stop(self, action, user_data=None):
-        self.stop_timing()
+        self.stop_clocking()
 
     def handle_toggle(self, action, user_data=None):
-        self.toggle_timing()
+        self.toggle_clocking()
 
     def handle_quit(self, action, user_data=None):
         logger.info("Quitting")
@@ -133,28 +133,28 @@ class App(Gtk.Application):
             return
 
         task.create()
-        self.start_timing(task, additional_minutes)
+        self.start_clocking(task, additional_minutes)
 
-    def start_timing(self, task: Task = None, additional_minutes: int = 0):
-        logger.info("Starting timing")
+    def start_clocking(self, task: Task = None, additional_minutes: int = 0):
+        logger.info("Starting clocking")
         self.timer.start(task, additional_minutes)
         self.screenlock_monitor.start()
         self.set_status_icon(running=True)
         self.send_started_notification()
 
-    def stop_timing(self):
-        logger.info("Stopping timing")
+    def stop_clocking(self):
+        logger.info("Stopping clocking")
         self.timer.stop()
         self.screenlock_monitor.stop()
         self.set_status_icon(running=False)
         self.send_stopped_notification()
 
-    def toggle_timing(self):
-        logger.info("Toggling timing")
+    def toggle_clocking(self):
+        logger.info("Toggling clocking")
         if self.is_running:
-            self.stop_timing()
+            self.stop_clocking()
         else:
-            self.start_timing()
+            self.start_clocking()
 
     def set_status_icon(self, running: bool):
         if not self.status_icon:
