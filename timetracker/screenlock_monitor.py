@@ -13,9 +13,9 @@ class ScreenlockMonitor(object):
 
     def __init__(self, timer: Timer):
         self.timer = timer
+        self.connection = Gio.bus_get_sync(Gio.BusType.SESSION, cancellable=None)
 
     def start(self):
-        self.connection = Gio.bus_get_sync(Gio.BusType.SESSION, cancellable=None)
         self.watcher_id = Gio.bus_watch_name_on_connection(
             self.connection,
             name="org.gnome.ScreenSaver",
@@ -25,16 +25,13 @@ class ScreenlockMonitor(object):
         )
 
     def stop(self):
-        if self.watcher_id:
-            Gio.bus_unwatch_name(self.watcher_id)
-            self.watcher_id = None
-
         if self.subscription_id:
             self.connection.signal_unsubscribe(self.subscription_id)
             self.subscription_id = None
 
-        if self.connection:
-            self.connection.close_sync(cancellable=None)
+        if self.watcher_id:
+            Gio.bus_unwatch_name(self.watcher_id)
+            self.watcher_id = None
 
     def on_name_appeared(self, connection: Gio.DBusConnection, name: str, name_owner: str):
         self.subscription_id = connection.signal_subscribe(
