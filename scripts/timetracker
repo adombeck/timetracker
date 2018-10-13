@@ -6,7 +6,8 @@ import signal
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gio, GLib
+gi.require_version('Notify', '0.7')
+from gi.repository import Gtk, Gio, GLib, Notify
 
 from timetracker import DATA_DIR, TASK_DIR, NEW_TASK_DIALOG_PATH
 from timetracker.task import Task
@@ -24,7 +25,8 @@ class App(Gtk.Application):
         self.timer = Timer()
         self.screenlock_monitor = ScreenlockMonitor(self.timer)
 
-        self.status_icon = None  # type: Gtk.StatusIcon
+        self.status_icon = None   # type: Gtk.StatusIcon
+        self.notification = None  # type: Notify.Notification
 
         self.add_main_option("verbose", 0, 0, 0, "Print debug messages")
         self.add_main_option("new", 0, 0, 0, "Create a new task")
@@ -55,6 +57,7 @@ class App(Gtk.Application):
         self.add_action(action)
 
         self.register()
+        Notify.init("timetracker")
 
     @property
     def is_running(self) -> bool:
@@ -142,12 +145,14 @@ class App(Gtk.Application):
         self.timer.start(task, additional_minutes)
         self.screenlock_monitor.start()
         self.set_status_icon(running=True)
+        self.send_started_notification()
 
     def stop_timing(self):
         logger.info("Stopping timing")
         self.timer.stop()
         self.screenlock_monitor.stop()
         self.set_status_icon(running=False)
+        self.send_stopped_notification()
 
     def toggle_timing(self):
         logger.info("Toggling timing")
@@ -164,6 +169,17 @@ class App(Gtk.Application):
         else:
             self.status_icon.set_from_icon_name("gtk-no")
 
+    def send_started_notification(self):
+        if self.notification:
+            self.notification.close()
+        self.notification = Notify.Notification.new("Clocking task '%s'" % Task.get_last().name)
+        self.notification.show()
+
+    def send_stopped_notification(self):
+        if self.notification:
+            self.notification.close()
+        self.notification = Notify.Notification.new("Stopped clocking task '%s'" % Task.get_last().name)
+        self.notification.show()
 
 def main():
     # Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=622084
