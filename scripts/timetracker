@@ -80,13 +80,13 @@ class App(Gtk.Application):
         elif options.contains("quit"):
             self.activate_action("quit")
 
-        if not self.get_is_remote():
-            self.show_status_icon()
+        self.hold()
 
         return 0
 
     def handle_new(self, action, user_data=None):
         self.create_new_task()
+        self.set_status_icon(running=False)
 
     def handle_start(self, action, user_data=None):
         self.start_timing()
@@ -101,11 +101,6 @@ class App(Gtk.Application):
         logger.info("Quitting")
         self.timer.stop()
         self.quit()
-
-    def show_status_icon(self):
-        logger.info("Showing status icon")
-        self.set_status_icon(running=False)
-        self.hold()
 
     def create_new_task(self):
         logger.info("Creating new task")
