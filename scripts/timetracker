@@ -3,13 +3,14 @@
 import logging
 import sys
 import signal
+import subprocess
 
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Notify', '0.7')
 from gi.repository import Gtk, Gio, GLib, Notify
 
-from timetracker import DATA_DIR, TASK_DIR, NEW_TASK_DIALOG_PATH
+from timetracker import DATA_DIR, TASK_DIR, NEW_TASK_DIALOG_UI_PATH
 from timetracker.task import Task
 from timetracker.timer import Timer
 from timetracker.screenlock_monitor import ScreenlockMonitor
@@ -25,7 +26,6 @@ class App(Gtk.Application):
         self.timer = Timer()
         self.screenlock_monitor = ScreenlockMonitor(self)
 
-        self.status_icon = None   # type: Gtk.StatusIcon
         self.notification = None  # type: Notify.Notification
 
         self.add_main_option("verbose", 0, 0, 0, "Print debug messages")
@@ -57,7 +57,25 @@ class App(Gtk.Application):
         self.add_action(action)
 
         self.register()
+        if self.get_is_remote():
+            return
+
         Notify.init("timetracker")
+        self.status_icon = Gtk.StatusIcon(visible=True)
+        self.menu = Gtk.Menu()
+
+        open_tasks_item = Gtk.MenuItem()
+        open_tasks_item.set_label("Open tasks directory")
+        open_tasks_item.connect("activate", self.handle_open_tasks_directory)
+        self.menu.append(open_tasks_item)
+
+        quit_item = Gtk.MenuItem()
+        quit_item.set_label("Quit")
+        quit_item.connect("activate", self.handle_quit)
+        self.menu.append(quit_item)
+
+        self.menu.show_all()
+        self.status_icon.connect("popup-menu", self.show_menu)
 
     @property
     def is_running(self) -> bool:
@@ -79,6 +97,7 @@ class App(Gtk.Application):
             self.activate_action("toggle")
         elif options.contains("quit"):
             self.activate_action("quit")
+            return 0
 
         self.hold()
 
@@ -103,9 +122,20 @@ class App(Gtk.Application):
         self.timer.stop()
         self.quit()
 
+    def handle_open_tasks_directory(self, event):
+        subprocess.Popen(["xdg-open", TASK_DIR])
+
+    def show_menu(self, icon: Gtk.StatusIcon, button: int, time: int):
+        self.menu.popup(parent_menu_shell=None,
+                        parent_menu_item=None,
+                        func=Gtk.StatusIcon.position_menu,
+                        data=icon,
+                        button=button,
+                        activate_time=time)
+
     def create_new_task(self):
         logger.info("Creating new task")
-        builder = Gtk.Builder.new_from_file(str(NEW_TASK_DIALOG_PATH))  # type: Gtk.Builder
+        builder = Gtk.Builder.new_from_file(str(NEW_TASK_DIALOG_UI_PATH))  # type: Gtk.Builder
         dialog = builder.get_object("dialog")
         name_entry = builder.get_object("name_entry")
         additional_minutes_entry = builder.get_object("additional_minutes_entry")
@@ -158,8 +188,6 @@ class App(Gtk.Application):
             self.screenlock_monitor.start()
 
     def set_status_icon(self, running: bool):
-        if not self.status_icon:
-            self.status_icon = Gtk.StatusIcon(visible=True)
         if running:
             self.status_icon.set_from_icon_name("gtk-yes")
         else:
