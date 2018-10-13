@@ -23,7 +23,7 @@ class App(Gtk.Application):
         super().__init__(application_id="foo.timetracker")
 
         self.timer = Timer()
-        self.screenlock_monitor = ScreenlockMonitor(self.timer)
+        self.screenlock_monitor = ScreenlockMonitor(self)
 
         self.status_icon = None   # type: Gtk.StatusIcon
         self.notification = None  # type: Notify.Notification
@@ -90,9 +90,11 @@ class App(Gtk.Application):
 
     def handle_start(self, action, user_data=None):
         self.start_clocking()
+        self.screenlock_monitor.start()
 
     def handle_stop(self, action, user_data=None):
         self.stop_clocking()
+        self.screenlock_monitor.stop()
 
     def handle_toggle(self, action, user_data=None):
         self.toggle_clocking()
@@ -138,14 +140,12 @@ class App(Gtk.Application):
     def start_clocking(self, task: Task = None, additional_minutes: int = 0):
         logger.info("Starting clocking")
         self.timer.start(task, additional_minutes)
-        self.screenlock_monitor.start()
         self.set_status_icon(running=True)
         self.send_started_notification()
 
     def stop_clocking(self):
         logger.info("Stopping clocking")
         self.timer.stop()
-        self.screenlock_monitor.stop()
         self.set_status_icon(running=False)
         self.send_stopped_notification()
 
@@ -153,8 +153,10 @@ class App(Gtk.Application):
         logger.info("Toggling clocking")
         if self.is_running:
             self.stop_clocking()
+            self.screenlock_monitor.stop()
         else:
             self.start_clocking()
+            self.screenlock_monitor.start()
 
     def set_status_icon(self, running: bool):
         if not self.status_icon:

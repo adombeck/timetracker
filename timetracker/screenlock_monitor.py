@@ -1,8 +1,6 @@
 from gi.repository import Gio, GLib
 from logging import getLogger
 
-from timetracker.timer import Timer
-
 logger = getLogger(__name__)
 
 
@@ -11,8 +9,8 @@ class ScreenlockMonitor(object):
     subscription_id = None  # type: int
     connection = None  # type: Gio.DBusConnection
 
-    def __init__(self, timer: Timer):
-        self.timer = timer
+    def __init__(self, app):
+        self.app = app
         self.connection = Gio.bus_get_sync(Gio.BusType.SESSION, cancellable=None)
 
     def start(self):
@@ -58,8 +56,10 @@ class ScreenlockMonitor(object):
 
     def on_screen_was_locked(self):
         logger.info("Screen was locked")
-        self.timer.stop()
+        # We only stop the timer, but don't send a notification, because we don't
+        # want the notification to wake up the system when it has just been locked
+        self.app.timer.stop()
 
     def on_screen_was_unlocked(self):
         logger.info("Screen was unlocked")
-        self.timer.start()
+        self.app.start_clocking()
