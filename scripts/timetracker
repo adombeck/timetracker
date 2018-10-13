@@ -11,7 +11,7 @@ from gi.repository import Gtk, Gio, GLib
 from timetracker import DATA_DIR, TASK_DIR, NEW_TASK_DIALOG_PATH
 from timetracker.task import Task
 from timetracker.timer import Timer
-
+from timetracker.screenlock_monitor import ScreenlockMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ class App(Gtk.Application):
         super().__init__(application_id="foo.timetracker")
 
         self.timer = Timer()
+        self.screenlock_monitor = ScreenlockMonitor(self.timer)
 
         self.status_icon = None  # type: Gtk.StatusIcon
 
@@ -54,6 +55,10 @@ class App(Gtk.Application):
         self.add_action(action)
 
         self.register()
+
+    @property
+    def is_running(self) -> bool:
+        return self.timer.thread and not self.timer.thread.halt.is_set()
 
     def do_handle_local_options(self, app: Gio.Application, options: GLib.VariantDict, user_data=None):
         if options.contains("verbose"):
@@ -135,22 +140,19 @@ class App(Gtk.Application):
 
     def start_timing(self, task: Task = None, additional_minutes: int = 0):
         logger.info("Starting timing")
-        if task:
-            Task.set_last(task)
-        else:
-            task = Task.get_last()
-
         self.timer.start(task, additional_minutes)
+        self.screenlock_monitor.start()
         self.set_status_icon(running=True)
 
     def stop_timing(self):
         logger.info("Stopping timing")
         self.timer.stop()
+        self.screenlock_monitor.stop()
         self.set_status_icon(running=False)
 
     def toggle_timing(self):
         logger.info("Toggling timing")
-        if self.timer.thread and not self.timer.thread.halt.is_set():
+        if self.is_running:
             self.stop_timing()
         else:
             self.start_timing()

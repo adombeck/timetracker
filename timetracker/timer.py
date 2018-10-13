@@ -4,8 +4,7 @@ from typing import TYPE_CHECKING
 import threading
 import time
 
-if TYPE_CHECKING:
-    from timetracker.task import Task
+from timetracker.task import Task
 
 
 class Timer(object):
@@ -13,11 +12,15 @@ class Timer(object):
     start_time = None
     task = None
 
-    def start(self, task: "Task", additional_minutes: int = 0):
+    def start(self, task: Task = None, additional_minutes: int = 0):
         if self.thread:
             self.thread.halt.set()
 
-        self.task = task
+        if task:
+            self.task = task
+        else:
+            self.task = Task.get_last()
+
         self.start_time = datetime.now(tz.tzlocal()) - timedelta(minutes=additional_minutes)
 
         self.task.new_entry(self.start_time)
