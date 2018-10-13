@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Time Tracker
+Comment=Track time spent on tasks
+Icon=org.gnome.clocks.png
+Exec=timetracker %U
+Terminal=false
+Categories=GTK;Utility
+Keywords=Time;Timer;Tracking;Tracker;Clocking;Log;VeraCrypt;TrueCrypt;Encryption;Volume;Container;Device;Mount;Unlock;Decrypt

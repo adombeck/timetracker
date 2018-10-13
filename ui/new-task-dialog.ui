@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <object class="GtkDialog" id="dialog">
+        <property name="title">Create a New Task</property>
+        <property name="modal">1</property>
+        <property name="use_header_bar">1</property>
+        <child type="action">
+            <object class="GtkButton" id="create">
+                <property name="visible">True</property>
+                <property name="label">Create</property>
+                <property name="can-default">True</property>
+            </object>
+        </child>
+        <child type="action">
+            <object class="GtkButton" id="cancel">
+                <property name="visible">True</property>
+                <property name="label">Cancel</property>
+            </object>
+        </child>
+        <child internal-child="vbox">
+            <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="orientation">vertical</property>
+                <property name="margin">10</property>
+                <property name="spacing">10</property>
+                <child>
+                    <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="spacing">10</property>
+                        <child>
+                            <object class="GtkLabel">
+                                <property name="label">Name</property>
+                                <property name="visible">True</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkEntry" id="name_entry">
+                                <property name="visible">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="activates_default">True</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="spacing">10</property>
+                        <child>
+                            <object class="GtkLabel">
+                                <property name="label">Add minutes already worked on task</property>
+                                <property name="visible">True</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkEntry" id="additional_minutes_entry">
+                                <property name="visible">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="activates_default">True</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+
+        <action-widgets>
+            <action-widget response="cancel">cancel</action-widget>
+            <action-widget response="ok" default="true">create</action-widget>
+        </action-widgets>
+    </object>
+</interface>

@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+import logging
+import sys
+import signal
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gio, GLib
+
+from timetracker import DATA_DIR, TASK_DIR, NEW_TASK_DIALOG_PATH
+from timetracker.task import Task
+from timetracker.timer import Timer
+
+
+logger = logging.getLogger(__name__)
+
+
+class App(Gtk.Application):
+    def __init__(self):
+        logger.debug("in App.__init__")
+        super().__init__(application_id="foo.timetracker")
+
+        self.timer = Timer()
+
+        self.status_icon = None  # type: Gtk.StatusIcon
+
+        self.add_main_option("verbose", 0, 0, 0, "Print debug messages")
+        self.add_main_option("new", 0, 0, 0, "Create a new task")
+        self.add_main_option("start", 0, 0, 0, "Start timing")
+        self.add_main_option("stop", 0, 0, 0, "Stop timing")
+        self.add_main_option("toggle", 0, 0, 0, "Toggle timing")
+        self.add_main_option("quit", 0, 0, 0, "Quit the application")
+        self.connect("handle-local-options", self.do_handle_local_options)
+
+        action = Gio.SimpleAction.new("new", None)
+        action.connect("activate", self.handle_new)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("start", None)
+        action.connect("activate", self.handle_start)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("stop", None)
+        action.connect("activate", self.handle_stop)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("toggle", None)
+        action.connect("activate", self.handle_toggle)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("quit", None)
+        action.connect("activate", self.handle_quit)
+        self.add_action(action)
+
+        self.register()
+
+    def do_handle_local_options(self, app: Gio.Application, options: GLib.VariantDict, user_data=None):
+        if options.contains("verbose"):
+            logging.basicConfig(level=logging.DEBUG)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
+        if options.contains("new"):
+            self.activate_action("new")
+        elif options.contains("start"):
+            self.activate_action("start")
+        elif options.contains("stop"):
+            self.activate_action("stop")
+        elif options.contains("toggle"):
+            self.activate_action("toggle")
+        elif options.contains("quit"):
+            self.activate_action("quit")
+
+        if not self.get_is_remote():
+            self.show_status_icon()
+
+        return 0
+
+    def handle_new(self, action, user_data=None):
+        self.create_new_task()
+
+    def handle_start(self, action, user_data=None):
+        self.start_timing()
+
+    def handle_stop(self, action, user_data=None):
+        self.stop_timing()
+
+    def handle_toggle(self, action, user_data=None):
+        self.toggle_timing()
+
+    def handle_quit(self, action, user_data=None):
+        logger.info("Quitting")
+        self.timer.stop()
+        self.quit()
+
+    def show_status_icon(self):
+        logger.info("Showing status icon")
+        self.status_icon = Gtk.StatusIcon(visible=True)
+        self.set_status_icon(running=False)
+        self.hold()
+
+    def create_new_task(self):
+        logger.info("Creating new task")
+        builder = Gtk.Builder.new_from_file(str(NEW_TASK_DIALOG_PATH))  # type: Gtk.Builder
+        dialog = builder.get_object("dialog")
+        name_entry = builder.get_object("name_entry")
+        additional_minutes_entry = builder.get_object("additional_minutes_entry")
+
+        result = dialog.run()
+        dialog.close()
+
+        if result != Gtk.ResponseType.OK:
+            logger.info("Creating new task cancelled by the user")
+            return
+
+        name = name_entry.get_text()
+        additional_minutes_str = additional_minutes_entry.get_text()
+        additional_minutes = int(additional_minutes_str) if additional_minutes_str else 0
+
+        try:
+            task = Task(name)
+        except Exception as e:
+            logger.exception(e)
+            error_dialog = Gtk.MessageDialog(parent=dialog,
+                                             message_type=Gtk.MessageType.ERROR,
+                                             text=str(e),
+                                             buttons=Gtk.ButtonsType.CLOSE)
+            error_dialog.run()
+            error_dialog.close()
+            return
+
+        task.create()
+        self.start_timing(task, additional_minutes)
+
+    def start_timing(self, task: Task = None, additional_minutes: int = 0):
+        logger.info("Starting timing")
+        if task:
+            Task.set_last(task)
+        else:
+            task = Task.get_last()
+
+        self.timer.start(task, additional_minutes)
+        self.set_status_icon(running=True)
+
+    def stop_timing(self):
+        logger.info("Stopping timing")
+        self.timer.stop()
+        self.set_status_icon(running=False)
+
+    def toggle_timing(self):
+        logger.info("Toggling timing")
+        if self.timer.thread and not self.timer.thread.halt.is_set():
+            self.stop_timing()
+        else:
+            self.start_timing()
+
+    def set_status_icon(self, running: bool):
+        if running:
+            self.status_icon.set_from_icon_name("gtk-yes")
+        else:
+            self.status_icon.set_from_icon_name("gtk-no")
+
+
+def main():
+    # Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=622084
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    if not DATA_DIR.exists():
+        DATA_DIR.mkdir(mode=0o700)
+
+    if not TASK_DIR.exists():
+        TASK_DIR.mkdir(mode=0o700)
+
+    app = App()
+    app.run(sys.argv)
+
+
+if __name__ == "__main__":
+    main()
