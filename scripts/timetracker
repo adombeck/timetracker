@@ -11,10 +11,11 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Notify', '0.7')
 from gi.repository import Gtk, Gio, GLib, Notify
 
-from timetracker import DATA_DIR, TASK_DIR, NEW_TASK_DIALOG_UI_PATH
+from timetracker import DATA_DIR, TASK_DIR
 from timetracker.task import Task
 from timetracker.timer import Timer
 from timetracker.screenlock_monitor import ScreenlockMonitor
+from timetracker.task_dialog import DialogCancelledError, run_task_dialog
 
 logger = logging.getLogger(__name__)
 
@@ -38,29 +39,32 @@ class App(Gtk.Application):
         self.add_main_option("quit", 0, 0, 0, "Quit the application")
         self.connect("handle-local-options", self.do_handle_local_options)
 
-        action = Gio.SimpleAction.new("new", None)
+        action = Gio.SimpleAction.new("new", parameter_type=None)
         action.connect("activate", self.handle_new)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("start", None)
+        action = Gio.SimpleAction.new("start", parameter_type=None)
         action.connect("activate", self.handle_start)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("stop", None)
+        action = Gio.SimpleAction.new("stop", parameter_type=None)
         action.connect("activate", self.handle_stop)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("toggle", None)
+        action = Gio.SimpleAction.new("toggle", parameter_type=None)
         action.connect("activate", self.handle_toggle)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("quit", None)
+        action = Gio.SimpleAction.new("quit", parameter_type=None)
         action.connect("activate", self.handle_quit)
         self.add_action(action)
 
         self.register()
         if self.get_is_remote():
+            logger.info("Not primary instance")
             return
+
+        logger.info("Initializing primary instance")
 
         Notify.init("timetracker")
         self.status_icon = Gtk.StatusIcon(visible=True)
@@ -115,21 +119,21 @@ class App(Gtk.Application):
 
         return 0
 
-    def handle_new(self, action):
+    def handle_new(self, action, user_data=None):
         self.create_new_task()
 
-    def handle_start(self, action):
+    def handle_start(self, action, user_data=None):
         self.start_clocking()
         self.screenlock_monitor.start()
 
-    def handle_stop(self, action):
+    def handle_stop(self, action, user_data=None):
         self.stop_clocking()
         self.screenlock_monitor.stop()
 
-    def handle_toggle(self, action):
+    def handle_toggle(self, action, user_data=None):
         self.toggle_clocking()
 
-    def handle_quit(self, action):
+    def handle_quit(self, action, user_data=None):
         logger.info("Quitting")
         self.timer.stop()
         self.quit()
@@ -152,27 +156,18 @@ class App(Gtk.Application):
 
     def create_new_task(self):
         logger.info("Creating new task")
-        builder = Gtk.Builder.new_from_file(str(NEW_TASK_DIALOG_UI_PATH))  # type: Gtk.Builder
-        dialog = builder.get_object("dialog")
-        name_entry = builder.get_object("name_entry")
-        additional_minutes_entry = builder.get_object("additional_minutes_entry")
 
-        result = dialog.run()
-        dialog.close()
-
-        if result != Gtk.ResponseType.OK:
-            logger.info("Creating new task cancelled by the user")
+        try:
+            name, additional_minutes = run_task_dialog()
+        except DialogCancelledError:
+            logger.info(str(DialogCancelledError))
             return
-
-        name = name_entry.get_text()
-        additional_minutes_str = additional_minutes_entry.get_text()
-        additional_minutes = int(additional_minutes_str) if additional_minutes_str else 0
 
         try:
             task = Task(name)
         except Exception as e:
             logger.exception(e)
-            error_dialog = Gtk.MessageDialog(parent=dialog,
+            error_dialog = Gtk.MessageDialog(parent=None,
                                              message_type=Gtk.MessageType.ERROR,
                                              text=str(e),
                                              buttons=Gtk.ButtonsType.CLOSE)
@@ -225,8 +220,7 @@ class App(Gtk.Application):
 
 def get_timesheet() -> str:
     lines = list()
-    for path in TASK_DIR.iterdir():
-        task = Task(path.name)
+    for task in Task.get_all():
         seconds = task.get_sum()
         minutes, seconds = divmod(seconds, 60)
         hours, minutes = divmod(minutes, 60)

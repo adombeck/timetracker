@@ -1,13 +1,11 @@
 import logging
 from pathlib import Path
-from typing import Union, TYPE_CHECKING
-import dateutil.parser
+from typing import Union, List, TYPE_CHECKING
 
+from timetracker import DATA_DIR, TASK_DIR
 
 if TYPE_CHECKING:
     from datetime import datetime, timedelta
-
-from timetracker import DATA_DIR
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +16,7 @@ class Task(object):
 
     def __init__(self, name):
         self.name = name
-        self.path = Path(DATA_DIR, "tasks", "name").with_name(name)
+        self.path = Path(TASK_DIR, "name").with_name(name)
 
     @classmethod
     def get_last(cls) -> Union["Task", None]:
@@ -32,6 +30,11 @@ class Task(object):
     @classmethod
     def set_last(cls, task: "Task"):
         cls.last.write_text(task.name)
+
+    @classmethod
+    def get_all(cls) -> List["Task"]:
+        names = sorted(path.name for path in TASK_DIR.iterdir())
+        return [Task(name) for name in names]
 
     def exists(self) -> bool:
         return self.path.exists()
