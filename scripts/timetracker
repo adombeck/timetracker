@@ -61,10 +61,9 @@ class App(Gtk.Application):
 
         self.register()
         if self.get_is_remote():
-            logger.info("Not primary instance")
             return
 
-        logger.info("Initializing primary instance")
+        print("Initializing primary instance")
 
         Notify.init("timetracker")
         self.status_icon = Gtk.StatusIcon(visible=True)
@@ -88,6 +87,7 @@ class App(Gtk.Application):
 
         self.menu.show_all()
         self.status_icon.connect("popup-menu", self.show_menu)
+        self.hold()
 
     @property
     def is_running(self) -> bool:
@@ -115,8 +115,6 @@ class App(Gtk.Application):
             return 0
         else:
             self.set_status_icon(running=False)
-
-        self.hold()
 
         return 0
 
