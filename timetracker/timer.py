@@ -12,14 +12,11 @@ class Timer(object):
     start_time = None
     task = None
 
-    def start(self, task: Task = None, additional_minutes: int = 0):
+    def start(self, task: Task, additional_minutes: int = 0):
         if self.thread:
             self.thread.halt.set()
 
-        if task:
-            self.task = task
-        else:
-            self.task = Task.get_last()
+        self.task = task
 
         self.start_time = datetime.now(tz.tzlocal()) - timedelta(minutes=additional_minutes)
 
