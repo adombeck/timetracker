@@ -32,7 +32,7 @@ class Timer(object):
             self.thread.halt.set()
 
     def update_time(self):
-        self.task.update_entry(self.start_time, datetime.now(tz.tzlocal()) - self.start_time)
+        self.task.update_entry(self.start_time, datetime.now(tz.tzlocal()))
 
 
 class TimingThread(threading.Thread):

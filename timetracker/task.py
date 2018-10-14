@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
+
 
 class Task(object):
     last = Path(DATA_DIR, "last")
@@ -44,16 +46,18 @@ class Task(object):
         self.path.touch(0o700)
 
     def new_entry(self, start_time: "datetime"):
-        start_time_str = start_time.strftime("%Y-%m-%d %H:%M:%S %Z")
+        start_time_str = start_time.strftime(TIME_FORMAT)
         logger.info("Inserting new entry to task '%s': %s", self.name, start_time_str)
 
         lines = self.path.read_text().strip().split("\n")
-        lines.append("%s: 0:00\n" % start_time_str)
+        lines.append("%s - %s: 0:00:00\n" % (start_time_str, start_time_str))
         self.path.write_text("\n".join(lines))
 
-    def update_entry(self, start_time: "datetime", time: "timedelta"):
-        start_time_str = start_time.strftime("%Y-%m-%d %H:%M:%S %Z")
-        minutes, seconds = divmod(time.seconds, 60)
+    def update_entry(self, start_time: "datetime", current_time: "datetime"):
+        start_time_str = start_time.strftime(TIME_FORMAT)
+        current_time_str = current_time.strftime(TIME_FORMAT)
+        delta = current_time - start_time
+        minutes, seconds = divmod(delta.seconds, 60)
         hours, minutes = divmod(minutes, 60)
         duration_str = "%i:%.2i:%.2i" % (hours, minutes, seconds)
         logger.info("Updating last entry of task '%s': %s", self.name, duration_str)
@@ -61,7 +65,7 @@ class Task(object):
         lines = self.path.read_text().strip().split("\n")
         if not lines[-1].startswith(start_time_str):
             raise ValueError("last entry of task '%s' does not have start time '%s", self.name, start_time_str)
-        lines[-1] = "%s: %s\n" % (start_time_str, duration_str)
+        lines[-1] = "%s - %s: %s\n" % (start_time_str, current_time_str, duration_str)
         self.path.write_text("\n".join(lines))
 
     def get_sum(self) -> int:
