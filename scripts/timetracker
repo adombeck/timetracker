@@ -68,6 +68,7 @@ class App(Gtk.Application):
 
         Notify.init("timetracker")
         self.status_icon = Gtk.StatusIcon(visible=True)
+        self.set_status_icon(running=False)
         self.menu = Gtk.Menu()
 
         item = Gtk.MenuItem()
