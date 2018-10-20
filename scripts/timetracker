@@ -145,6 +145,10 @@ class App(Gtk.Application):
         f.write(get_timesheet())
         subprocess.Popen(["gedit", "-", f.name])
 
+    def handle_open_task(self, notification: Notify.Notification, action: str):
+        logger.info("Opening '%s'", str(Task.get_last().path))
+        subprocess.Popen(["xdg-open", str(Task.get_last().path)])
+
     def show_menu(self, icon: Gtk.StatusIcon, button: int, time: int):
         self.menu.popup(parent_menu_shell=None,
                         parent_menu_item=None,
@@ -212,13 +216,15 @@ class App(Gtk.Application):
     def send_started_notification(self, task: Task):
         if self.notification:
             self.notification.close()
-        self.notification = Notify.Notification.new("Clocking task '%s'" % task.name)
+        self.notification = Notify.Notification.new("Clocking task '%s'" % task.name)  # type: Notify.Notification
+        self.notification.add_action("show", "Show", self.handle_open_task)
         self.notification.show()
 
     def send_stopped_notification(self):
         if self.notification:
             self.notification.close()
         self.notification = Notify.Notification.new("Stopped clocking task '%s'" % Task.get_last().name)
+        self.notification.add_action("show", "Show", self.handle_open_task)
         self.notification.show()
 
 
