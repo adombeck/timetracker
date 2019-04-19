@@ -1,16 +1,13 @@
 import logging
 from pathlib import Path
-from typing import Union, List, TYPE_CHECKING
+from typing import Union, List
+from datetime import datetime
 
-from timetracker import DATA_DIR, TASK_DIR
-
-if TYPE_CHECKING:
-    from datetime import datetime, timedelta
+from timetracker import DATA_DIR, TASK_DIR, TIME_FORMAT, DATE_FORMAT
+from timetracker import util
 
 
 logger = logging.getLogger(__name__)
-
-TIME_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
 
 
 class Task(object):
@@ -45,7 +42,7 @@ class Task(object):
         logger.info("Creating task '%s'", self.name)
         self.path.touch(0o700)
 
-    def new_entry(self, start_time: "datetime"):
+    def new_entry(self, start_time: datetime):
         start_time_str = start_time.strftime(TIME_FORMAT)
         logger.info("Inserting new entry to task '%s': %s", self.name, start_time_str)
 
@@ -53,13 +50,11 @@ class Task(object):
         lines.append("%s - %s: 0:00:00\n" % (start_time_str, start_time_str))
         self.path.write_text("\n".join(lines))
 
-    def update_entry(self, start_time: "datetime", current_time: "datetime"):
+    def update_entry(self, start_time: datetime, current_time: datetime):
         start_time_str = start_time.strftime(TIME_FORMAT)
         current_time_str = current_time.strftime(TIME_FORMAT)
         delta = current_time - start_time
-        minutes, seconds = divmod(delta.seconds, 60)
-        hours, minutes = divmod(minutes, 60)
-        duration_str = "%i:%.2i:%.2i" % (hours, minutes, seconds)
+        duration_str = util.seconds_to_timestr(delta.seconds, show_seconds=True)
         logger.info("Updating last entry of task '%s': %s", self.name, duration_str)
 
         lines = self.path.read_text().strip().split("\n")
@@ -68,9 +63,17 @@ class Task(object):
         lines[-1] = "%s - %s: %s\n" % (start_time_str, current_time_str, duration_str)
         self.path.write_text("\n".join(lines))
 
-    def get_sum(self) -> int:
+    def get_sum(self, from_: datetime = None, to: datetime = None) -> int:
+        if from_ is None:
+            from_ = datetime.min
+        if to is None:
+            to = datetime.max
         total_seconds = 0
+
         for line in self.path.read_text().strip().split("\n"):
+            date_str = line.split()[0]
+            if not from_ <= datetime.strptime(date_str, DATE_FORMAT) <= to:
+                continue
             duration_str = line.split(": ")[-1]
             hours, minutes, seconds = (int(s) for s in duration_str.split(":"))
             total_seconds += seconds + 60 * minutes + 3600 * hours
