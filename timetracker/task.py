@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Union, List
 from datetime import datetime
+import shutil
 
 from timetracker import DATA_DIR, TASK_DIR, TIME_FORMAT, DATE_FORMAT
 from timetracker import util
@@ -42,6 +43,11 @@ class Task(object):
         logger.info("Creating task '%s'", self.name)
         self.path.touch(0o700)
 
+    def create_backup(self):
+        logger.info("Creating backup of '%s'", self.path)
+        backup_path = str(self.path) + ".bkp"
+        shutil.copy(self.path, backup_path)
+
     def new_entry(self, start_time: datetime):
         start_time_str = start_time.strftime(TIME_FORMAT)
         logger.info("Inserting new entry to task '%s': %s", self.name, start_time_str)
@@ -51,6 +57,8 @@ class Task(object):
         self.path.write_text("\n".join(lines))
 
     def update_entry(self, start_time: datetime, current_time: datetime):
+        self.create_backup()
+
         start_time_str = start_time.strftime(TIME_FORMAT)
         current_time_str = current_time.strftime(TIME_FORMAT)
         delta = current_time - start_time
