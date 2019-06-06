@@ -81,11 +81,6 @@ class App(Gtk.Application):
         self.menu.append(item)
 
         item = Gtk.MenuItem()
-        item.set_label("Show timesheet")
-        item.connect("activate", self.handle_show_timesheet)
-        self.menu.append(item)
-
-        item = Gtk.MenuItem()
         item.set_label("Quit")
         item.connect("activate", self.handle_quit)
         self.menu.append(item)
