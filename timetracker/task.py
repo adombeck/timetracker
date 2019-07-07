@@ -83,7 +83,11 @@ class Task(object):
             if not from_ <= datetime.strptime(date_str, DATE_FORMAT) <= to:
                 continue
             duration_str = line.split(": ")[-1]
-            hours, minutes, seconds = (int(s) for s in duration_str.split(":"))
+            time_tuple = [int(s) for s in duration_str.split(":")]
+            # Handle the case where a duration was added manually, without seconds
+            if len(time_tuple) == 2:
+                time_tuple += (0,)
+            hours, minutes, seconds = time_tuple
             total_seconds += seconds + 60 * minutes + 3600 * hours
 
         return total_seconds
