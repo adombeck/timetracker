@@ -5,6 +5,7 @@ import sys
 import signal
 import subprocess
 import tempfile
+import re
 from datetime import datetime
 
 import gi
@@ -41,6 +42,8 @@ class App(Gtk.Application):
                              "Print a timesheet listing the time spent in total on each task (in HH:MM format). "
                              "You may specify a start date since which the timesheet will be generated "
                              "(in YYYY-MM-DD format), or a date range (in YYYY-MM-DD,YYYY-MM-DD format)")
+        self.add_main_option("filter", 0, 0, GLib.OptionArg.STRING,
+                             "When printing a timesheet, filter the included tasks by name via the provided regex")
         self.add_main_option("quit", 0, 0, 0, "Quit the application")
         self.connect("handle-local-options", self.do_handle_local_options)
 
@@ -121,7 +124,13 @@ class App(Gtk.Application):
 
             from_ = datetime.strptime(from_str, DATE_FORMAT) if from_str else None
             to = datetime.strptime(to_str, DATE_FORMAT) if to_str else None
-            print(get_timesheet(from_, to))
+
+            if options.contains("filter"):
+                regex = options.lookup_value("filter", GLib.VariantType(type_string="s")).get_string()
+            else:
+                regex = None
+
+            print(get_timesheet(from_, to, regex))
             return 0
         else:
             self.set_status_icon(running=False)
@@ -243,10 +252,15 @@ class App(Gtk.Application):
         self.notification.show()
 
 
-def get_timesheet(from_: datetime = None, to: datetime = None) -> str:
+def get_timesheet(from_: datetime = None, to: datetime = None, regex: str = None) -> str:
     lines = list()
     total = 0
-    for task in Task.get_all():
+    tasks = Task.get_all()
+    # Ignore backups
+    tasks = [t for t in tasks if not t.name.endswith(".bkp")]
+    if regex:
+        tasks = [t for t in tasks if re.match(regex, t.name)]
+    for task in tasks:
         seconds = task.get_sum(from_, to)
         if not seconds:
             continue
