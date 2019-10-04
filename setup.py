@@ -12,6 +12,7 @@ setup(
     scripts=['scripts/timetracker'],
     packages=['timetracker'],
     data_files=[
+        ('/usr/local/share/timetracker/icons', glob.glob('icons/*')),
         ('/usr/local/share/timetracker/ui', glob.glob('ui/*')),
         ('/usr/local/share/applications', ['data/timetracker.desktop']),
     ],
