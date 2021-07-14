@@ -7,3 +7,4 @@ NEW_TASK_DIALOG_UI_PATH = Path(UI_DIR, "new-task-dialog.ui")
 
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
 DATE_FORMAT = "%Y-%m-%d"
+HOURS_FORMAT = "%H:%M:%S"

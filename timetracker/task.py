@@ -78,9 +78,14 @@ class Task(object):
             to = datetime.max
         total_seconds = 0
 
-        for line in self.path.read_text().strip().split("\n"):
+        for i, line in enumerate(self.path.read_text().strip().split("\n")):
             date_str = line.split()[0]
-            if not from_ <= datetime.strptime(date_str, DATE_FORMAT) <= to:
+            try:
+                date = datetime.strptime(date_str, DATE_FORMAT)
+            except ValueError:
+                print("error parsing date from file %s:%s" % (self.path, i))
+                continue
+            if not from_ <= date <= to:
                 continue
             duration_str = line.split(": ")[-1]
             time_tuple = [int(s) for s in duration_str.split(":")]
@@ -91,3 +96,23 @@ class Task(object):
             total_seconds += seconds + 60 * minutes + 3600 * hours
 
         return total_seconds
+
+    def get_dates(self, from_: datetime = None,
+                  to: datetime = None) -> List[datetime]:
+        if from_ is None:
+            from_ = datetime.min
+        if to is None:
+            to = datetime.max
+        dates = list()
+
+        for i, line in enumerate(self.path.read_text().strip().split("\n")):
+            date_str = line.split()[0]
+            try:
+                date = datetime.strptime(date_str, DATE_FORMAT)
+            except ValueError:
+                print("error parsing date from file %s:%s" % (self.path, i))
+                continue
+            if from_ <= date <= to:
+                dates.append(date)
+
+        return dates

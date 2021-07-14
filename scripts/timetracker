@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
+from datetime import datetime, timedelta
 import logging
 import os
+import re
 import sys
 import signal
 import subprocess
 import tempfile
-import re
-from datetime import datetime
+from typing import List
 
 import gi
 gi.require_version('GLib', '2.0')
@@ -18,7 +19,7 @@ gi.require_version('AppIndicator3', '0.1')
 
 from gi.repository import Gtk, Gio, GLib, Notify, AppIndicator3
 
-from timetracker import DATA_DIR, TASK_DIR, DATE_FORMAT
+from timetracker import DATA_DIR, TASK_DIR, DATE_FORMAT, HOURS_FORMAT
 from timetracker.task import Task
 from timetracker.timer import Timer
 from timetracker.screenlock_monitor import ScreenlockMonitor
@@ -49,8 +50,19 @@ class App(Gtk.Application):
                              "Print a timesheet listing the time spent in total on each task (in HH:MM format). "
                              "You may specify a start date since which the timesheet will be generated "
                              "(in YYYY-MM-DD format), or a date range (in YYYY-MM-DD,YYYY-MM-DD format)")
+        self.add_main_option("print-hours-per-day", 0, 0,
+                             GLib.OptionArg.STRING,
+                             "Print a timesheet listing the hours worked "
+                             "on each day. "
+                             "You may specify a start date since which the "
+                             "timesheet will be generated "
+                             "(in YYYY-MM-DD format), or a date range (in "
+                             "YYYY-MM-DD,YYYY-MM-DD format)")
         self.add_main_option("filter", 0, 0, GLib.OptionArg.STRING,
                              "When printing a timesheet, filter the included tasks by name via the provided regex")
+        self.add_main_option("cap", 0, 0, GLib.OptionArg.STRING,
+                             "When printing a timesheet, cap the clocked "
+                             "hours per day")
         self.add_main_option("quit", 0, 0, 0, "Quit the application")
         self.connect("handle-local-options", self.do_handle_local_options)
 
@@ -148,6 +160,37 @@ class App(Gtk.Application):
                 regex = None
 
             print(get_timesheet(from_, to, regex))
+            return 0
+        elif options.contains("print-hours-per-day"):
+            date_str = options.lookup_value(
+                "print-hours-per-day",
+                GLib.VariantType(type_string="s"),
+            ).get_string()
+            from_str = None
+            to_str = None
+            if "," in date_str:
+                from_str, to_str = date_str.split(",")
+            elif date_str:
+                from_str = date_str
+
+            from_ = datetime.strptime(from_str, DATE_FORMAT) if from_str else None
+            to = datetime.strptime(to_str, DATE_FORMAT) if to_str else None
+
+            if options.contains("filter"):
+                regex = options.lookup_value(
+                    "filter", GLib.VariantType(type_string="s"),
+                ).get_string()
+            else:
+                regex = None
+
+            if options.contains("cap"):
+                cap = int(options.lookup_value(
+                    "cap", GLib.VariantType(type_string="s"),
+                ).get_string())
+            else:
+                cap = None
+
+            print(get_hours_per_day(from_, to, regex, cap))
             return 0
         else:
             self.set_status_icon(running=False)
@@ -271,7 +314,8 @@ class App(Gtk.Application):
         self.notification.show()
 
 
-def get_timesheet(from_: datetime = None, to: datetime = None, regex: str = None) -> str:
+def get_timesheet(from_: datetime = None, to: datetime = None,
+                  regex: str = None) -> str:
     lines = list()
     total = 0
     tasks = Task.get_all()
@@ -287,6 +331,36 @@ def get_timesheet(from_: datetime = None, to: datetime = None, regex: str = None
         lines.append(task.name + ": " + util.seconds_to_timestr(seconds))
     timesheet = "\n".join(sorted(lines))
     timesheet += "\ntotal: " + util.seconds_to_timestr(total)
+    return timesheet
+
+
+def get_hours_per_day(from_: datetime = None, to: datetime = None,
+                      regex: str = None, cap: int=None) -> str:
+    lines = list()
+    total = 0
+    tasks = Task.get_all()
+    # Ignore backups
+    tasks = [t for t in tasks if not t.name.endswith(".bkp")]
+    if regex:
+        tasks = [t for t in tasks if re.match(regex, t.name)]
+    # Get earliest and latest date
+    dates = list()  # type: List[datetime]
+    for task in tasks:
+        dates += task.get_dates(from_, to)
+    if not dates:
+        return ""
+    earliest = min(dates)
+    latest = max(dates)
+    for date in util.daterange(earliest, latest):
+        seconds = sum(task.get_sum(from_=date, to=date) for task in tasks)
+        if cap and seconds/3600 > cap:
+            seconds = cap*3600
+        total += seconds
+        lines.append("%s: %s" % (date.strftime(DATE_FORMAT),
+                                 util.seconds_to_timestr(seconds)))
+
+    timesheet = "\n".join(sorted(lines))
+    timesheet += "\ntotal: %s" %  util.seconds_to_timestr(total)
     return timesheet
 
 
