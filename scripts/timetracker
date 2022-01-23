@@ -95,7 +95,11 @@ class App(Gtk.Application):
         Notify.init("timetracker")
 
         # Add system tray icon
-        self.tray_icon = Gtk.StatusIcon(visible=True)
+        # Commented out because it's shown as duplicate icon when the
+        # AppIndicator Support Gnome extension is enabled and I don't
+        # see any use case for it anymore because the TopIcons Plus
+        # extension is not supported anymore.
+        # self.tray_icon = Gtk.StatusIcon(visible=True)
         self.menu = Gtk.Menu()
 
         item = Gtk.MenuItem()
@@ -109,7 +113,7 @@ class App(Gtk.Application):
         self.menu.append(item)
 
         self.menu.show_all()
-        self.tray_icon.connect("popup-menu", self.show_menu)
+        # self.tray_icon.connect("popup-menu", self.show_menu)
 
         # Add AppIndicator icon
         self.appindicator = AppIndicator3.Indicator.new(
@@ -289,10 +293,10 @@ class App(Gtk.Application):
     def set_status_icon(self, running: bool):
         if running:
             self.appindicator.set_icon_full(os.path.join(ICONS_DIR, "gtk-yes.svg"), "timetracker is active")
-            self.tray_icon.set_from_icon_name("gtk-yes")
+            # self.tray_icon.set_from_icon_name("gtk-yes")
         else:
             self.appindicator.set_icon_full(os.path.join(ICONS_DIR, "gtk-no.svg"), "timetracker is inactive")
-            self.tray_icon.set_from_icon_name("gtk-no")
+            # self.tray_icon.set_from_icon_name("gtk-no")
 
     def send_started_notification2(self, task: Task):
         self.notification = Gio.Notification.new("Clocking task '%s'" % task.name)  # type: Gio.Notification
