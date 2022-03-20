@@ -11,13 +11,19 @@ import tempfile
 from typing import List
 
 import gi
+
 gi.require_version('GLib', '2.0')
 gi.require_version('Gio', '2.0')
 gi.require_version('Gtk', '3.0')
 gi.require_version('Notify', '0.7')
-gi.require_version('AppIndicator3', '0.1')
+from gi.repository import Gtk, Gio, GLib, Notify
 
-from gi.repository import Gtk, Gio, GLib, Notify, AppIndicator3
+try:
+    gi.require_version('AppIndicator3', '0.1')
+    from gi.repository import AppIndicator3
+except ValueError:
+    gi.require_version('AyatanaAppIndicator3', '0.1')
+    from gi.repository import AyatanaAppIndicator3 as AppIndicator3
 
 from timetracker import DATA_DIR, TASK_DIR, DATE_FORMAT, HOURS_FORMAT
 from timetracker.task import Task
