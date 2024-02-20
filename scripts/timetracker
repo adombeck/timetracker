@@ -122,13 +122,16 @@ class App(Gtk.Application):
         # self.tray_icon.connect("popup-menu", self.show_menu)
 
         # Add AppIndicator icon
-        self.appindicator = AppIndicator3.Indicator.new(
-            "timetracker", os.path.join(ICONS_DIR, "gtk-yes.svg"), AppIndicator3.IndicatorCategory.APPLICATION_STATUS
+        self.appindicator: AppIndicator3.Indicator = AppIndicator3.Indicator.new(
+            id="timetracker",
+            icon_name=os.path.join(ICONS_DIR, "gtk-no.svg"),
+            category=AppIndicator3.IndicatorCategory.APPLICATION_STATUS
         )
         self.appindicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.appindicator.set_menu(self.menu)
+        self.appindicator.set_attention_icon(os.path.join(ICONS_DIR, "gtk-yes.svg"))
 
-        self.set_status_icon(running=False)
+        self.set_status(running=False)
         self.hold()
 
     @property
@@ -203,7 +206,7 @@ class App(Gtk.Application):
             print(get_hours_per_day(from_, to, regex, cap))
             return 0
         else:
-            self.set_status_icon(running=False)
+            self.set_status(running=False)
 
         return 0
 
@@ -278,13 +281,13 @@ class App(Gtk.Application):
         Task.set_last(task)
 
         self.timer.start(task, additional_minutes)
-        self.set_status_icon(running=True)
+        self.set_status(running=True)
         self.send_started_notification(task)
 
     def stop_clocking(self):
         logger.info("Stopping clocking")
         self.timer.stop()
-        self.set_status_icon(running=False)
+        self.set_status(running=False)
         self.send_stopped_notification()
 
     def toggle_clocking(self):
@@ -296,12 +299,14 @@ class App(Gtk.Application):
             self.start_clocking()
             self.screenlock_monitor.start()
 
-    def set_status_icon(self, running: bool):
+    def set_status(self, running: bool):
         if running:
-            self.appindicator.set_icon_full(os.path.join(ICONS_DIR, "gtk-yes.svg"), "timetracker is active")
+            self.appindicator.set_status(AppIndicator3.IndicatorStatus.ATTENTION)
+            # self.appindicator.set_icon_full(os.path.join(ICONS_DIR, "gtk-yes.svg"), "timetracker is active")
             # self.tray_icon.set_from_icon_name("gtk-yes")
         else:
-            self.appindicator.set_icon_full(os.path.join(ICONS_DIR, "gtk-no.svg"), "timetracker is inactive")
+            self.appindicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+            # self.appindicator.set_icon_full(os.path.join(ICONS_DIR, "gtk-no.svg"), "timetracker is inactive")
             # self.tray_icon.set_from_icon_name("gtk-no")
 
     def send_started_notification2(self, task: Task):
