@@ -258,6 +258,9 @@ class App(Gtk.Application):
             logger.info(str(DialogCancelledError))
             return
 
+        # We use the name as a filename, so we need to sanitize it
+        name = name.replace("/", "-")
+
         try:
             task = Task(name)
         except Exception as e:
