@@ -11,6 +11,7 @@ from datetime import datetime
 
 import gi
 
+# ruff: noqa: E402
 gi.require_version('GLib', '2.0')
 gi.require_version('Gio', '2.0')
 gi.require_version('Gtk', '3.0')
