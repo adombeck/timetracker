@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-from datetime import datetime, timedelta
 import logging
 import os
 import re
-import sys
 import signal
 import subprocess
+import sys
 import tempfile
-from typing import List
+from datetime import datetime
 
 import gi
 
@@ -25,7 +24,7 @@ except ValueError:
     gi.require_version('AyatanaAppIndicator3', '0.1')
     from gi.repository import AyatanaAppIndicator3 as AppIndicator3
 
-from timetracker import DATA_DIR, TASK_DIR, DATE_FORMAT, HOURS_FORMAT
+from timetracker import DATA_DIR, TASK_DIR, DATE_FORMAT
 from timetracker.task import Task
 from timetracker.timer import Timer
 from timetracker.screenlock_monitor import ScreenlockMonitor
