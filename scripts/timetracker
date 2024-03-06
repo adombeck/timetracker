@@ -72,23 +72,23 @@ class App(Gtk.Application):
         self.add_main_option("quit", 0, 0, 0, "Quit the application")
         self.connect("handle-local-options", self.do_handle_local_options)
 
-        action = Gio.SimpleAction.new("new", parameter_type=None)
+        action = Gio.SimpleAction(name="new")
         action.connect("activate", self.handle_new)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("start", parameter_type=None)
+        action = Gio.SimpleAction(name="start")
         action.connect("activate", self.handle_start)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("stop", parameter_type=None)
+        action = Gio.SimpleAction(name="stop")
         action.connect("activate", self.handle_stop)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("toggle", parameter_type=None)
+        action = Gio.SimpleAction(name="toggle")
         action.connect("activate", self.handle_toggle)
         self.add_action(action)
 
-        action = Gio.SimpleAction.new("quit", parameter_type=None)
+        action = Gio.SimpleAction(name="quit")
         action.connect("activate", self.handle_quit)
         self.add_action(action)
 
