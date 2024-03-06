@@ -92,6 +92,12 @@ class App(Gtk.Application):
         action.connect("activate", self.handle_quit)
         self.add_action(action)
 
+        self.appindicator: AppIndicator3.Indicator = AppIndicator3.Indicator.new(
+            id="timetracker",
+            icon_name=os.path.join(ICONS_DIR, "gtk-no.svg"),
+            category=AppIndicator3.IndicatorCategory.APPLICATION_STATUS
+        )
+
         self.register()
         if self.get_is_remote():
             return
@@ -122,11 +128,6 @@ class App(Gtk.Application):
         # self.tray_icon.connect("popup-menu", self.show_menu)
 
         # Add AppIndicator icon
-        self.appindicator: AppIndicator3.Indicator = AppIndicator3.Indicator.new(
-            id="timetracker",
-            icon_name=os.path.join(ICONS_DIR, "gtk-no.svg"),
-            category=AppIndicator3.IndicatorCategory.APPLICATION_STATUS
-        )
         self.appindicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.appindicator.set_menu(self.menu)
         self.appindicator.set_attention_icon_full(
