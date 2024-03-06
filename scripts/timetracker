@@ -45,7 +45,7 @@ class App(Gtk.Application):
         self.timer = Timer()
         self.screenlock_monitor = ScreenlockMonitor(self)
 
-        self.notification = None  # type: Notify.Notification
+        self.notification: Notify.Notification | None = None
 
         self.add_main_option("verbose", 0, 0, 0, "Print debug messages")
         self.add_main_option("new", 0, 0, 0, "Create a new task")
