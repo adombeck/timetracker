@@ -358,7 +358,7 @@ def get_timesheet(from_: datetime = None, to: datetime = None,
 
 def get_hours_per_day(from_: datetime = None, to: datetime = None,
                       regex: str = None, cap: int = None) -> str:
-    lines = list()
+    lines = []
     total = 0
     tasks = Task.get_all()
     # Ignore backups
@@ -366,7 +366,7 @@ def get_hours_per_day(from_: datetime = None, to: datetime = None,
     if regex:
         tasks = [t for t in tasks if re.match(regex, t.name)]
     # Get earliest and latest date
-    dates = list()  # type: List[datetime]
+    dates: list[datetime] = []
     for task in tasks:
         dates += task.get_dates(from_, to)
     if not dates:
