@@ -34,7 +34,7 @@ from timetracker import util
 
 logger = logging.getLogger(__name__)
 
-ICONS_DIR="/usr/local/share/timetracker/icons"
+ICONS_DIR = "/usr/local/share/timetracker/icons"
 
 
 class App(Gtk.Application):
@@ -356,7 +356,7 @@ def get_timesheet(from_: datetime = None, to: datetime = None,
 
 
 def get_hours_per_day(from_: datetime = None, to: datetime = None,
-                      regex: str = None, cap: int=None) -> str:
+                      regex: str = None, cap: int = None) -> str:
     lines = list()
     total = 0
     tasks = Task.get_all()
@@ -374,14 +374,14 @@ def get_hours_per_day(from_: datetime = None, to: datetime = None,
     latest = max(dates)
     for date in util.daterange(earliest, latest):
         seconds = sum(task.get_sum(from_=date, to=date) for task in tasks)
-        if cap and seconds/3600 > cap:
-            seconds = cap*3600
+        if cap and seconds / 3600 > cap:
+            seconds = cap * 3600
         total += seconds
         lines.append("%s: %s" % (date.strftime(DATE_FORMAT),
                                  util.seconds_to_timestr(seconds)))
 
     timesheet = "\n".join(sorted(lines))
-    timesheet += "\ntotal: %s" %  util.seconds_to_timestr(total)
+    timesheet += "\ntotal: %s" % util.seconds_to_timestr(total)
     return timesheet
 
 
