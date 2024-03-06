@@ -19,7 +19,7 @@ def run_task_dialog() -> (str, str):
     additional_minutes_entry = builder.get_object("additional_minutes_entry")  # type: Gtk.Entry
 
     completion_model = Gtk.ListStore(str)
-    for task in Task.get_all():
+    for task in (t for t in Task.get_all() if not t.name.endswith(".bkp")):
         completion_model.append([task.name])
 
     completion = Gtk.EntryCompletion()
