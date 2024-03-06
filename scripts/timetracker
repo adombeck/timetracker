@@ -129,7 +129,10 @@ class App(Gtk.Application):
         )
         self.appindicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.appindicator.set_menu(self.menu)
-        self.appindicator.set_attention_icon(os.path.join(ICONS_DIR, "gtk-yes.svg"))
+        self.appindicator.set_attention_icon_full(
+            os.path.join(ICONS_DIR, "gtk-yes.svg"),
+            "timetracker is active",
+        )
 
         self.set_status(running=False)
         self.hold()
