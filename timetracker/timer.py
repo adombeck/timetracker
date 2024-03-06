@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from dateutil import tz
-from typing import TYPE_CHECKING
 import threading
 import time
 
